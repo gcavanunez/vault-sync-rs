@@ -1,0 +1,30 @@
+[package]
+name = "vault-sync"
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.89"
+description = "A daemon that syncs a notes vault through Git, whether the editor is open or closed."
+license = "MIT"
+repository = "https://github.com/gcavanunez/vault-sync-rs"
+publish = false
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+libc = "0.2"
+notify = "8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+signal-hook = "0.4"
+
+# A panicking worker thread would leave a daemon that answers status but never
+# syncs; abort instead so the service manager restarts it. Surviving Git
+# children keep the repository lock, as they do after any abrupt exit.
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
+strip = true

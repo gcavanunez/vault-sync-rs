@@ -1,0 +1,17 @@
+{
+  "vaultPath": "/absolute/path/to/your/vault",
+  "deviceName": "linux-desktop",
+  "remote": "origin",
+  "branch": "main",
+  "quietMs": 10000,
+  "checkpointMs": 60000,
+  "remotePollMs": 60000,
+  "reconcileMs": 300000,
+  "commandTimeoutMs": 300000,
+  "requestTimeoutMs": 900000,
+  "retryMaxMs": 300000,
+  "notifyAfterFailures": 3,
+  "notifications": true,
+  "path": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+  "sshCommand": "ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=2"
+}
