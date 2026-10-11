@@ -5,8 +5,7 @@ or closed. Each computer has its own clone and can sync independently. The tool
 lives in this repository; notes stay in the vault.
 
 Installed computers need Git 2.31+ and noninteractive Git authentication.
-Supported systems are Linux and macOS, on x64 and arm64. Building requires Rust
-1.89 or newer.
+Supported systems are Linux and macOS, on x64 and arm64.
 
 ## How it runs
 
@@ -66,44 +65,44 @@ changes were detected at completion. Edits during transfer produce a pending
 result instead. This check cannot include unsaved editor buffers or a remote push
 made after the last network exchange.
 
-## Build and check
+## Install
+
+With [mise](https://mise.jdx.dev), from the prebuilt release binaries:
 
 ```sh
-cargo fmt --check
-cargo clippy --all-targets --locked -- -D warnings
-cargo test --locked
-cargo build --release --locked
+mise use -g github:gcavanunez/vault-sync-rs
+vault-sync --version
 ```
 
-The executable is `target/release/vault-sync`, about 1.2 MB with no runtime
-dependencies beyond the system C library. Build on each target OS rather than
-cross-compiling, and run the test suite there: it exercises signals, process
-groups, file locks and the native watcher, which differ between Linux and macOS.
+Releases contain static Linux executables for x64 and arm64, which run on any
+distribution, and macOS executables for Apple Silicon and Intel. Each one is
+built and tested on its own platform before it is published, and mise checks
+its checksum and GitHub build attestation when it downloads it.
 
-The tests use disposable local Git repositories, including real competing pushes,
-edits during fetch/push, timeouts, process termination, inherited locks, watcher
-delivery, remote polling, and daemon pause/resume. They never use the real vault.
-`tests/sync.rs` treats the executable as a black box, so it can check any build:
+Or build from source with Rust 1.89 or newer:
 
 ```sh
-VAULT_SYNC_TEST_BINARY=/path/to/vault-sync cargo test --test sync --test install
+cargo build --release --locked   # target/release/vault-sync, about 1.2 MB
 ```
 
-For development, `cargo run -- --help` runs the source.
+## Set up the service
 
-## Configure and install
+The service runs the daemon from a stable path, `~/.local/bin/vault-sync`,
+rather than from mise's per-version install directory. The installer copies the
+executable there, creates `~/.config/vault-sync/config.json` if absent, and
+writes a systemd or launchd definition. It does not start the service.
 
 ```sh
-cargo build --release --locked
+# After installing with mise:
+sh "$(mise where github:gcavanunez/vault-sync-rs)/install.sh"
+# From a source checkout, after cargo build:
 ./install.sh
-# Or: ./install.sh /path/to/a/compiled/vault-sync
+# Or with any compiled executable:
+./install.sh /path/to/vault-sync
 ```
 
-The installer copies the executable to `~/.local/bin/vault-sync`, creates
-`~/.config/vault-sync/config.json` if absent, and writes a systemd or launchd
-definition. It does not start the service. Existing config is preserved; a
-different executable or service definition must be moved aside before replacing
-it. Stop the service before upgrading.
+Existing config is preserved; a different executable or service definition
+must be moved aside before replacing it (see [Upgrade](#upgrade)).
 
 Edit the generated config, using [config.example.json](config.example.json) as a
 reference. Only `vaultPath` is required. Set a stable `deviceName` on each machine:
@@ -136,10 +135,11 @@ compatible between versions, so upgrades need no migration. The installer
 refuses to overwrite a different executable, so move the old one aside:
 
 ```sh
+mise upgrade github:gcavanunez/vault-sync-rs   # or rebuild from source
 # Linux; on macOS use launchctl bootout/bootstrap as below.
 systemctl --user stop vault-sync.service
 mv ~/.local/bin/vault-sync ~/.local/bin/vault-sync.old
-./install.sh
+sh "$(mise where github:gcavanunez/vault-sync-rs)/install.sh"   # or ./install.sh
 systemctl --user start vault-sync.service
 vault-sync status
 ```
@@ -272,6 +272,43 @@ launchctl bootout "gui/$(id -u)/com.gcavanunez.vault-sync"
 ```
 
 Check Git status before resuming the plugin's automatic routines.
+
+## Development
+
+```sh
+cargo fmt --check
+cargo clippy --all-targets --locked -- -D warnings
+cargo test --locked
+cargo run -- --help
+```
+
+CI runs the same checks on Linux (x64 and arm64) and macOS (Apple Silicon and
+Intel) for every push and pull request. The suite exercises signals, process
+groups, file locks and the native watcher, which differ between the two systems.
+
+The tests use disposable local Git repositories, including real competing pushes,
+edits during fetch/push, timeouts, process termination, inherited locks, watcher
+delivery, remote polling, and daemon pause/resume. They never use the real vault.
+`tests/sync.rs` treats the executable as a black box, so it can check any build:
+
+```sh
+VAULT_SYNC_TEST_BINARY=/path/to/vault-sync cargo test --test sync --test install
+```
+
+## Releases
+
+Bump `version` in `Cargo.toml`, commit, and push a matching tag:
+
+```sh
+git tag v0.4.0
+git push origin v0.4.0
+```
+
+The release workflow checks that the tag matches the crate version, builds on
+each platform, runs the whole test suite against each executable it is about to
+ship, attests the archives, and publishes them with a `SHA256SUMS` file. Each
+archive contains `bin/vault-sync`, `install.sh`, `config.example.json`, this
+README and the license.
 
 ## Source layout
 

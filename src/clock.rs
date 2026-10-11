@@ -52,7 +52,8 @@ unsafe extern "C" {
 
 /// Local time for commit subjects, e.g. `2026-10-10 13:49:35`.
 pub fn local_stamp(ms: i64) -> String {
-    let seconds = ms.div_euclid(1000) as libc::time_t;
+    // The type comes from localtime_r: naming libc::time_t is deprecated on musl.
+    let seconds = ms.div_euclid(1000) as _;
     // SAFETY: an all-zero `tm` is a valid value for localtime_r to overwrite.
     let mut parts: libc::tm = unsafe { std::mem::zeroed() };
     // SAFETY: localtime_r writes only into `parts`. tzset reads TZ, and this

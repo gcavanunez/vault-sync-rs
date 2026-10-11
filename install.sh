@@ -5,7 +5,14 @@ case "$(uname -s)" in
   Linux|Darwin) ;;
   *) printf 'Supported systems: Linux and macOS.\n' >&2; exit 1 ;;
 esac
-BINARY=${1:-"$PROJECT_DIR/target/release/vault-sync"}
+if [ -n "${1:-}" ]; then
+  BINARY=$1
+elif [ -x "$PROJECT_DIR/bin/vault-sync" ]; then
+  # A release archive, for example the install directory of mise.
+  BINARY="$PROJECT_DIR/bin/vault-sync"
+else
+  BINARY="$PROJECT_DIR/target/release/vault-sync"
+fi
 BIN_DIR="$HOME/.local/bin"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/vault-sync"
 if [ ! -x "$BINARY" ]; then
